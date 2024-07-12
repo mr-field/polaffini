@@ -136,23 +136,26 @@ loss_weights = [args.weight_img_loss]*2 + [args.weight_seg_loss]*2 + [args.weigh
     
 optimizer = tf.keras.optimizers.Adam(learning_rate=args.learning_rate)
 
+strategy = tf.distribute.MirroredStrategy()
+print(f'Number of devices: {strategy.num_replicas_in_sync}')
 
-if args.resume:
-    # load existing model
-    model = dwarp.networks.diffeo_pair_seg.load(args.model)
-    with open(args.model[:-3] + '_losses.csv', 'r') as loss_file:
-        for initial_epoch, _ in enumerate(loss_file):
-            pass
-    print('resuming training at epoch: ' + str(initial_epoch))
-else:
-    # build the model
-    model = dwarp.networks.diffeo_pair_seg(inshape=args.grid_size,
-                                           nb_labs=sample[0][0].shape[-1],
-                                           nb_enc_features=args.enc_nf,
-                                           nb_dec_features=args.dec_nf,
-                                           int_steps=7,
-                                           name='diffeo_pair_seg')
-    initial_epoch = 0
+with strategy.scope():
+    if args.resume:
+        # load existing model
+        model = dwarp.networks.diffeo_pair_seg.load(args.model)
+        with open(args.model[:-3] + '_losses.csv', 'r') as loss_file:
+            for initial_epoch, _ in enumerate(loss_file):
+                pass
+        print('resuming training at epoch: ' + str(initial_epoch))
+    else:
+        # build the model
+        model = dwarp.networks.diffeo_pair_seg(inshape=args.grid_size,
+                                            nb_labs=sample[0][0].shape[-1],
+                                            nb_enc_features=args.enc_nf,
+                                            nb_dec_features=args.dec_nf,
+                                            int_steps=7,
+                                            name='diffeo_pair_seg')
+        initial_epoch = 0
   
 model.compile(optimizer=optimizer, loss=losses, loss_weights=loss_weights)
 tf.keras.utils.plot_model(model, to_file=args.model[:-3] + '_plot.png', show_shapes=True, show_layer_names=True)

@@ -139,25 +139,29 @@ optimizer = tf.keras.optimizers.Adam(learning_rate=args.learning_rate)
 #     f'batch size {arg.batch_size} not a multiple of the number of GPUs {nb_devices}'
 # assert tf.__version__.startswith('2'), f'TensorFlow version {tf.__version__} is not 2 or later'
 
+strategy = tf.distribute.MirroredStrategy()
+print(f'Number of devices: {strategy.num_replicas_in_sync}')
+
 # with tf.device(device):
-if args.resume:
-    # load existing model
-    model = dwarp.networks.diffeo2atlas.load(args.model)
-    with open(args.model[:-3] + '_losses.csv', 'r') as loss_file:
-        for initial_epoch, _ in enumerate(loss_file):
-            pass
-    print('resuming training at epoch: ' + str(initial_epoch))
-else:
-    # build the model
-    model = dwarp.networks.diffeo2atlas(inshape=inshape,
-                                        orientation=matO,
-                                        nb_enc_features=args.enc_nf,
-                                        nb_dec_features=args.dec_nf,
-                                        src_feats=nfeats,
-                                        nb_labs = nb_labs,
-                                        int_steps=7)
-    initial_epoch = 0
-  
+with strategy.scope():
+    if args.resume:
+        # load existing model
+        model = dwarp.networks.diffeo2atlas.load(args.model)
+        with open(args.model[:-3] + '_losses.csv', 'r') as loss_file:
+            for initial_epoch, _ in enumerate(loss_file):
+                pass
+        print('resuming training at epoch: ' + str(initial_epoch))
+    else:
+        # build the model
+        model = dwarp.networks.diffeo2atlas(inshape=inshape,
+                                            orientation=matO,
+                                            nb_enc_features=args.enc_nf,
+                                            nb_dec_features=args.dec_nf,
+                                            src_feats=nfeats,
+                                            nb_labs = nb_labs,
+                                            int_steps=7)
+        initial_epoch = 0
+
 model.compile(optimizer=optimizer, loss=losses, loss_weights=loss_weights)
 tf.keras.utils.plot_model(model, to_file=args.model[:-3] + '_plot.png', show_shapes=True, show_layer_names=True)
 
