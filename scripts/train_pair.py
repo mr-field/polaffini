@@ -4,6 +4,7 @@ maindir = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
 sys.path.append(maindir)
 import glob
 import tensorflow as tf
+import tf_keras as keras
 import voxelmorph           
 import dwarp
 import argparse
@@ -134,7 +135,7 @@ loss_smo = voxelmorph.losses.Grad('l2', loss_mult=1).loss
 losses = [loss_img]*2 + [loss_seg]*2 + [loss_smo]
 loss_weights = [args.weight_img_loss]*2 + [args.weight_seg_loss]*2 + [args.weight_reg_loss]
     
-optimizer = tf.keras.optimizers.Adam(learning_rate=args.learning_rate)
+optimizer = keras.optimizers.Adam(learning_rate=args.learning_rate)
 
 strategy = tf.distribute.MirroredStrategy()
 print(f'Number of devices: {strategy.num_replicas_in_sync}')
@@ -158,7 +159,7 @@ with strategy.scope():
         initial_epoch = 0
   
 model.compile(optimizer=optimizer, loss=losses, loss_weights=loss_weights)
-tf.keras.utils.plot_model(model, to_file=args.model[:-3] + '_plot.png', show_shapes=True, show_layer_names=True)
+keras.utils.plot_model(model, to_file=args.model[:-3] + '_plot.png', show_shapes=True, show_layer_names=True)
 
 #%% Train the model
 
@@ -174,8 +175,8 @@ os.makedirs(os.path.dirname(args.model), exist_ok=True)
 
 model.save(args.model.format(epoch=initial_epoch))
 
-save_callback = tf.keras.callbacks.ModelCheckpoint(args.model, monitor=monitor, mode='min', save_best_only=True)
-csv_logger = tf.keras.callbacks.CSVLogger(args.model[:-3] + '_losses.csv', append=True, separator=',')
+save_callback = keras.callbacks.ModelCheckpoint(args.model, monitor=monitor, mode='min', save_best_only=True)
+csv_logger = keras.callbacks.CSVLogger(args.model[:-3] + '_losses.csv', append=True, separator=',')
 imgdir = os.path.join(os.path.dirname(args.model), 'imgs')
 os.makedirs(imgdir, exist_ok=True)
 # plot_reg = dwarp.callbacks.plotImgReg(sample[0][1], sample[0][0], os.path.join(imgdir, 'img'), modeltype='diffeo_pair')

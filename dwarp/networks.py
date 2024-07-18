@@ -1,8 +1,9 @@
 # third party imports
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras.layers as KL
-import tensorflow.keras.initializers as KI
+import tf_keras as keras
+import tf_keras.layers as KL
+import tf_keras.initializers as KI
 
 import voxelmorph   
 # This code uses Voxelmorph pieces directly or contains pieces inspired by Voxelmorph.
@@ -44,10 +45,10 @@ class aff2atlas(ne.modelio.LoadableModel):
         ndims = len(inshape)
         assert ndims in [2, 3], 'ndims should be one of 2, or 3. found: %d' % ndims
 
-        moving = tf.keras.Input(shape=(*inshape, src_feats), name='%s_moving_input' % name)
-        init_transfo = tf.keras.Input(shape=(ndims), name='%s_init_transfo_input' % name)
+        moving = keras.Input(shape=(*inshape, src_feats), name='%s_moving_input' % name)
+        init_transfo = keras.Input(shape=(ndims), name='%s_init_transfo_input' % name)
         inputs = [moving, init_transfo]
-        input_model = tf.keras.Model(inputs=inputs, outputs=moving)
+        input_model = keras.Model(inputs=inputs, outputs=moving)
 
         # build core enc model and grab inputs
         enc_model = encoder(input_model=input_model,
@@ -123,7 +124,7 @@ class aff2atlas(ne.modelio.LoadableModel):
         """
         Returns a reconfigured model to predict only the final transform.
         """
-        return tf.keras.Model(self.inputs, 
+        return keras.Model(self.inputs, 
                               [self.references.moved, self.references.affMat])
 
     def register(self, src):
@@ -137,9 +138,9 @@ class aff2atlas(ne.modelio.LoadableModel):
         Predicts the transform from src to trg and applies it to the img tensor.
         """
         warp_model = self.get_registration_model()
-        img_input = tf.keras.Input(shape=img.shape[1:])
+        img_input = keras.Input(shape=img.shape[1:])
         y_img = layers.SpatialTransformer(interp_method=interp_method)([img_input, warp_model.output[1]])
-        return tf.keras.Model(warp_model.inputs + [img_input], y_img).predict([src, img], verbose=0)
+        return keras.Model(warp_model.inputs + [img_input], y_img).predict([src, img], verbose=0)
     
     
     
@@ -182,9 +183,9 @@ class diffeo2atlas(ne.modelio.LoadableModel): # Inspired by voxelmorph's VxmDens
         ndims = len(inshape)
         assert ndims in [2, 3], 'ndims should be one of 2, or 3. found: %d' % ndims
 
-        moving = tf.keras.Input(shape=(*inshape, src_feats), name='%s_moving_input' % name)            
+        moving = keras.Input(shape=(*inshape, src_feats), name='%s_moving_input' % name)            
         inputs = [moving]
-        input_model = tf.keras.Model(inputs=inputs, outputs=moving)
+        input_model = keras.Model(inputs=inputs, outputs=moving)
 
         # build core unet model and grab inputs
         unet_model = voxelmorph.networks.Unet(input_model=input_model,
@@ -211,14 +212,14 @@ class diffeo2atlas(ne.modelio.LoadableModel): # Inspired by voxelmorph's VxmDens
         outputs = [moved]
 
         if is_seg:
-            moving_seg = tf.keras.Input(shape=(*inshape, nb_labs), name='%s_moving_seg_input' % name)  #, dtype='bool')
+            moving_seg = keras.Input(shape=(*inshape, nb_labs), name='%s_moving_seg_input' % name)  #, dtype='bool')
             inputs = inputs + [moving_seg]
             moved_seg = voxelmorph.layers.SpatialTransformer(interp_method='nearest', indexing='ij', name='resampler_seg')([moving_seg, transfo])  
             dummy_layer = KL.Lambda(lambda x: x, name='seg')
             moved_seg = dummy_layer(moved_seg)
             outputs += [moved_seg]
         if is_aux:
-            moving_aux = tf.keras.Input(shape=(*inshape, src_feats), name='%s_moving_aux_input' % name)
+            moving_aux = keras.Input(shape=(*inshape, src_feats), name='%s_moving_aux_input' % name)
             inputs = inputs + [moving_aux]
             moved_aux = voxelmorph.layers.SpatialTransformer(interp_method='linear', indexing='ij', name='resampler_aux')([moving_aux, transfo])
             dummy_layer = KL.Lambda(lambda x: x, name='aux')
@@ -243,7 +244,7 @@ class diffeo2atlas(ne.modelio.LoadableModel): # Inspired by voxelmorph's VxmDens
         """
         Returns a reconfigured model to predict only the final transform.
         """
-        return tf.keras.Model(self.inputs[:1], 
+        return keras.Model(self.inputs[:1], 
                               [self.references.moved, self.references.transfo, self.references.flow])
 
     def register(self, src):
@@ -257,9 +258,9 @@ class diffeo2atlas(ne.modelio.LoadableModel): # Inspired by voxelmorph's VxmDens
         Predicts the transform from src to trg and applies it to the img tensor.
         """
         warp_model = self.get_registration_model()
-        img_input = tf.keras.Input(shape=img.shape[1:])
+        img_input = keras.Input(shape=img.shape[1:])
         y_img = layers.SpatialTransformer(interp_method=interp_method)([img_input, warp_model.output[1]])
-        return tf.keras.Model(warp_model.inputs + [img_input], y_img).predict([src, img], verbose=0)
+        return keras.Model(warp_model.inputs + [img_input], y_img).predict([src, img], verbose=0)
 
 
 
@@ -295,12 +296,12 @@ class diffeo_pair_seg(ne.modelio.LoadableModel): # Inspired by voxelmorph's VxmD
         ndims = len(inshape)
         assert ndims in [2, 3], 'ndims should be one of 2, or 3. found: %d' % ndims
         
-        target = tf.keras.Input(shape=(*inshape, trg_feats), name='%s_target_input' % name)  
-        moving = tf.keras.Input(shape=(*inshape, src_feats), name='%s_moving_input' % name)      
-        target_seg = tf.keras.Input(shape=(*inshape, nb_labs), name='%s_target_seg_input' % name) 
-        moving_seg = tf.keras.Input(shape=(*inshape, nb_labs), name='%s_moving_seg_input' % name) 
+        target = keras.Input(shape=(*inshape, trg_feats), name='%s_target_input' % name)  
+        moving = keras.Input(shape=(*inshape, src_feats), name='%s_moving_input' % name)      
+        target_seg = keras.Input(shape=(*inshape, nb_labs), name='%s_target_seg_input' % name) 
+        moving_seg = keras.Input(shape=(*inshape, nb_labs), name='%s_moving_seg_input' % name) 
 
-        input_model = tf.keras.Model(inputs=[moving, target], outputs=[moving, target])
+        input_model = keras.Model(inputs=[moving, target], outputs=[moving, target])
 
         # build core unet model and grab inputs
         unet_model = voxelmorph.networks.Unet(input_model=input_model,
@@ -365,7 +366,7 @@ class diffeo_pair_seg(ne.modelio.LoadableModel): # Inspired by voxelmorph's VxmD
         """
         Returns a reconfigured model to predict only the final transform.
         """
-        return tf.keras.Model(self.inputs[:2], 
+        return keras.Model(self.inputs[:2], 
                              [self.references.moved_pos, self.references.moved_neg,
                               self.references.defo_pos, self.references.defo_neg, self.references.svf])
 
@@ -417,9 +418,9 @@ class sudistoc(ne.modelio.LoadableModel):
 
         if input_model is None:
             # configure default input layers if an input model is not provided
-            source = tf.keras.Input(shape=(*inshape, src_feats), name='%s_source_input' % name)
-            target = tf.keras.Input(shape=(*inshape, trg_feats), name='%s_target_input' % name)
-            input_model = tf.keras.Model(inputs=[source, target], outputs=[source, target])
+            source = keras.Input(shape=(*inshape, src_feats), name='%s_source_input' % name)
+            target = keras.Input(shape=(*inshape, trg_feats), name='%s_target_input' % name)
+            input_model = keras.Model(inputs=[source, target], outputs=[source, target])
         else:
             source, target = input_model.outputs[:2]
 
@@ -444,7 +445,7 @@ class sudistoc(ne.modelio.LoadableModel):
                 if i == ped:
                     flow_list.append(field_pos)
                 else:
-                    flow_list.append(tf.keras.backend.zeros_like(field_pos))
+                    flow_list.append(keras.backend.zeros_like(field_pos))
              
             field_pos = KL.concatenate(flow_list, name='%s_concat_flow' % name)
         
@@ -518,13 +519,13 @@ class sudistoc(ne.modelio.LoadableModel):
         """
         Returns a reconfigured model to predict only the final transform.
         """
-        return tf.keras.Model(self.inputs, [self.references.pos_flow,self.references.neg_flow])
+        return keras.Model(self.inputs, [self.references.pos_flow,self.references.neg_flow])
     
     def register(self):
         """
         Returns a reconfigured model to predict only the final transform.
         """
-        return tf.keras.Model(self.inputs, [self.references.y_source, self.references.y_target, self.references.pos_flow_dir, self.references.neg_flow_dir])
+        return keras.Model(self.inputs, [self.references.y_source, self.references.y_target, self.references.pos_flow_dir, self.references.neg_flow_dir])
 
 
     def register2(self, src, trg):
@@ -536,18 +537,18 @@ class sudistoc(ne.modelio.LoadableModel):
     def apply_corr(self, in_img1, in_img2, img1, img2):
 
         warp_model = self.get_registration_model()
-        img1_input = tf.keras.Input(shape=img1.shape[1:])
-        img2_input = tf.keras.Input(shape=img2.shape[1:])
+        img1_input = keras.Input(shape=img1.shape[1:])
+        img2_input = keras.Input(shape=img2.shape[1:])
         img1_corr = voxelmorph.layers.SpatialTransformer(interp_method='linear', indexing='ij')([img1_input, warp_model.output[0]])
         img2_corr = voxelmorph.layers.SpatialTransformer(interp_method='linear', indexing='ij')([img2_input, warp_model.output[1]])
         # if self.references.jacob_mod:
         img1_corr = layers.JacobianMultiplyIntensities(indexing='ij')([img1_corr, warp_model.output[0]])
         img2_corr = layers.JacobianMultiplyIntensities(indexing='ij')([img2_corr, warp_model.output[1]])
                 
-        return tf.keras.Model(warp_model.inputs + [img1_input, img2_input], [img1_corr, img2_corr]).predict([in_img1, in_img2, img1, img2], verbose=0)
+        return keras.Model(warp_model.inputs + [img1_input, img2_input], [img1_corr, img2_corr]).predict([in_img1, in_img2, img1, img2], verbose=0)
 
         
-class encoder(tf.keras.Model): # Similar code to voxelmorph's Unet but truncated to only keep the encoder part.
+class encoder(keras.Model): # Similar code to voxelmorph's Unet but truncated to only keep the encoder part.
     """
     An encoder architecture that builds off either an input keras model or input shape. Layer features can be
     specified directly as a list of encoder features or as a single integer along with a number of encoder levels.

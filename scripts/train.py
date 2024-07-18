@@ -5,6 +5,7 @@ sys.path.append(maindir)
 import glob
 import numpy as np
 import tensorflow as tf
+import tf_keras as keras
 import voxelmorph           
 import dwarp
 import SimpleITK as sitk
@@ -131,7 +132,7 @@ if args.use_seg:
 losses += [voxelmorph.losses.Grad('l2', loss_mult=1).loss]
 loss_weights += [args.weight_reg_loss]
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=args.learning_rate)
+optimizer = keras.optimizers.Adam(learning_rate=args.learning_rate)
 
 # # TensorFlow handling
 # device, nb_devices = vxm.tf.utils.setup_device(arg.gpu)
@@ -163,7 +164,7 @@ with strategy.scope():
         initial_epoch = 0
 
 model.compile(optimizer=optimizer, loss=losses, loss_weights=loss_weights)
-tf.keras.utils.plot_model(model, to_file=args.model[:-3] + '_plot.png', show_shapes=True, show_layer_names=True)
+keras.utils.plot_model(model, to_file=args.model[:-3] + '_plot.png', show_shapes=True, show_layer_names=True)
 
 #%% Train the model
 
@@ -179,8 +180,8 @@ os.makedirs(os.path.dirname(args.model), exist_ok=True)
 
 model.save(args.model.format(epoch=initial_epoch))
 
-save_callback = tf.keras.callbacks.ModelCheckpoint(args.model, monitor=monitor, mode='min', save_best_only=True)
-csv_logger = tf.keras.callbacks.CSVLogger(args.model[:-3] + '_losses.csv', append=True, separator=',')
+save_callback = keras.callbacks.ModelCheckpoint(args.model, monitor=monitor, mode='min', save_best_only=True)
+csv_logger = keras.callbacks.CSVLogger(args.model[:-3] + '_losses.csv', append=True, separator=',')
 imgdir = os.path.join(os.path.dirname(args.model), 'imgs')
 os.makedirs(imgdir, exist_ok=True)
 # plot_reg = dwarp.callbacks.plotImgReg(sample[1][0], sample[0][0], os.path.join(imgdir, 'img'), modeltype='diffeo2template')

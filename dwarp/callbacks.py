@@ -1,12 +1,13 @@
 import os
 import tensorflow as tf
+import tf_keras as keras
 import voxelmorph
 import matplotlib.pyplot as plt
 import numpy as np
 from . import utils, layers, losses
 
 
-class plotImgReg(tf.keras.callbacks.Callback):
+class plotImgReg(keras.callbacks.Callback):
    
     def __init__(self, ref, mov, img_prefix, dim=0, modeltype='diffeo_pair'):
         self.dim = dim
@@ -38,7 +39,7 @@ class plotImgReg(tf.keras.callbacks.Callback):
         plt.imsave(self.img_prefix + '_' + str(epoch) + '.jpg', img)
 
 
-class plotImgReg2(tf.keras.callbacks.Callback):
+class plotImgReg2(keras.callbacks.Callback):
    
     def __init__(self, x, sl_sag, sl_axi, is_aux=False, is_weighted=False):
         self.is_aux = is_aux
