@@ -10,7 +10,11 @@ import dwarp
 import SimpleITK as sitk
 import argparse
 
-print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+gpus = tf.config.experimental.list_physical_devices('GPU')
+print("Num GPUs Available: ", len(gpus))
+tf.config.experimental.set_memory_growth(gpus[0], True)
+tf.config.experimental.set_virtual_device_configuration(gpus[0],
+                                                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=12000)])
 
 parser = argparse.ArgumentParser(description="Training script for dwarp diffeomorphic registration to template. TetraReg segmentation-based initialization")
 
@@ -105,7 +109,7 @@ loss_weights += [args.weight_reg_loss]
 optimizer = tf.keras.optimizers.Adam(learning_rate=args.learning_rate)
 
 # tensorflow device handling
-device, nb_devices = voxelmorph.tf.utils.setup_device(1)
+device, nb_devices = voxelmorph.tf.utils.setup_device(0)
 assert np.mod(args.batch_size, nb_devices) == 0, \
     'Batch size (%d) should be a multiple of the nr of gpus (%d)' % (args.batch_size, nb_devices)
 

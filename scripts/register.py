@@ -58,7 +58,7 @@ if args.ref_seg == "mni2":
 elif args.ref_seg == "mni1":
     args.ref_seg = os.path.join(maindir, 'refs', 'mni_dkt.nii.gz')
 
-model = dwarp.networks.diffeo2atlas_net.load(args.model)
+model = dwarp.networks.diffeo2atlas.load(args.model)
 
 inshape = model.output_shape[0][1:-1]
 ndims = len(inshape)
